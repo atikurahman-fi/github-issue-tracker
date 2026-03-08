@@ -395,6 +395,48 @@
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
     
+ // Update total label
+    function updateTotal(list) {
+      totalEl.textContent = `${list.length} Issues`;
+    }
+
+    // ── Count open/closed 
+    function updateTabCounts() {
+      const totalCount  = allIssues.length;
+      const openCount   = allIssues.filter(i => (i.status || i.state || '').toLowerCase() === 'open').length;
+      const closedCount = allIssues.filter(i => (i.status || i.state || '').toLowerCase() === 'closed').length;
+
+      document.getElementById('count-all').textContent    = totalCount;
+      document.getElementById('count-open').textContent   = openCount;
+      document.getElementById('count-closed').textContent = closedCount;
+
+      document.getElementById('summary-open').textContent   = openCount;
+      document.getElementById('summary-closed').textContent = closedCount;
+    }
+
+    // UI state helpers
+    function showLoading() {
+      loadingEl.classList.remove('hidden');
+      errorEl.classList.add('hidden');
+      emptyEl.classList.add('hidden');
+      gridEl.classList.add('hidden');
+    }
+    function showError() {
+      loadingEl.classList.add('hidden');
+      errorEl.classList.remove('hidden');
+      emptyEl.classList.add('hidden');
+      gridEl.classList.add('hidden');
+    }
+    function hideAll() {
+      loadingEl.classList.add('hidden');
+      errorEl.classList.add('hidden');
+      emptyEl.classList.add('hidden');
+      gridEl.classList.add('hidden');
+    }
+
+    //Boot 
+    loadIssues();
+
   </script>
 
   
