@@ -67,11 +67,91 @@
   </nav>
 
 
+<!-- ── MAIN ── -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-2 inline-flex gap-1 mb-6">
+      <button data-tab="all" onclick="switchTab('all')"
+        class="tab-btn active-tab px-5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+        All
+        <span id="count-all" class="text-xs font-bold bg-white/30 px-2 py-0.5 rounded-full">—</span>
+      </button>
+      <button data-tab="open" onclick="switchTab('open')"
+        class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-2">
+        Open
+        <span id="count-open" class="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">—</span>
+      </button>
+      <button data-tab="closed" onclick="switchTab('closed')"
+        class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-2">
+        Closed
+        <span id="count-closed" class="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">—</span>
+      </button>
+    </div>
+
+    <!-- Issue summary bar -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4 mb-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <p id="issue-total" class="font-bold text-gray-900 text-lg">— Issues</p>
+          <p class="text-sm text-gray-500">Track and manage your project issues</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-5 text-sm font-medium">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+          <span class="text-gray-600">Open</span>
+          <span id="summary-open" class="font-bold text-green-600">—</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
+          <span class="text-gray-600">Closed</span>
+          <span id="summary-closed" class="font-bold text-purple-600">—</span>
+        </span>
+      </div>
+    </div>
+
+
+ <!-- Loading spinner -->
+    <div id="loading" class="flex justify-center py-20">
+      <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full spin"></div>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="hidden text-center py-20 text-gray-500">
+      <p class="text-4xl mb-3">⚠️</p>
+      <p class="font-semibold text-gray-700">Failed to load issues</p>
+      <p class="text-sm mt-1">Check your connection and try again.</p>
+      <button onclick="loadIssues()" class="mt-4 px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm">Retry</button>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden text-center py-20 text-gray-400">
+      <p class="text-4xl mb-3">📭</p>
+      <p class="font-semibold text-gray-600">No issues found</p>
+      <p class="text-sm mt-1">Try a different search or filter.</p>
+    </div>
+
+    <!-- Cards grid -->
+    <div id="cards-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+  </main>
 
 
 
 
 
-  
+
+
+
+
+
+
+<script src="./script.js"></script>
 </body>
 </html>
