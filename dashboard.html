@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>GitHub Issues Tracker – Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Issues Tracker – Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -35,11 +35,11 @@
 </head>
 <body class="bg-slate-100 min-h-screen">
 
-  <!-- NAVBAR -->
+  <!-- ── NAVBAR ── -->
   <nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
 
-      <!-- logo -->
+      <!-- Left: logo + name -->
       <div class="flex items-center gap-2 shrink-0">
         <svg class="w-7 h-7" viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg">
           <path fill="#1b1f23" fill-rule="evenodd" clip-rule="evenodd"
@@ -48,7 +48,7 @@
         <span class="font-bold text-gray-900 text-lg">GitHub Issues Tracker</span>
       </div>
 
-      <!-- Search -->
+      <!-- Right: search + new issue -->
       <div class="flex items-center gap-3 flex-1 justify-end">
         <div class="relative flex-1 max-w-xs">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -66,8 +66,7 @@
     </div>
   </nav>
 
-
-<!-- ── MAIN ── -->
+  <!-- ── MAIN ── -->
   <main class="max-w-7xl mx-auto px-6 py-8">
 
     <!-- Tabs -->
@@ -116,8 +115,7 @@
       </div>
     </div>
 
-
- <!-- Loading spinner -->
+    <!-- Loading spinner -->
     <div id="loading" class="flex justify-center py-20">
       <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full spin"></div>
     </div>
@@ -142,16 +140,263 @@
 
   </main>
 
+  <!-- ── MODAL ── -->
+  <div id="modal-overlay" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+    <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-in" onclick="event.stopPropagation()">
+      <div class="p-8">
+        <h2 id="modal-title" class="text-2xl font-bold text-gray-900 mb-3"></h2>
 
+        <!-- status + meta -->
+        <div id="modal-meta" class="flex items-center gap-2 flex-wrap text-sm text-gray-500 mb-4"></div>
 
+        <!-- labels -->
+        <div id="modal-labels" class="flex gap-2 flex-wrap mb-5"></div>
 
+        <!-- description -->
+        <p id="modal-desc" class="text-gray-600 leading-relaxed mb-6"></p>
 
+        <!-- assignee + priority grid -->
+        <div class="bg-slate-50 rounded-xl p-4 grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <p class="text-xs text-gray-400 mb-1">Assignee:</p>
+            <p id="modal-assignee" class="font-bold text-gray-800 text-sm"></p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 mb-1">Priority:</p>
+            <span id="modal-priority" class="inline-block text-xs font-bold px-3 py-1 rounded-full"></span>
+          </div>
+        </div>
 
+        <div class="flex justify-end">
+          <button onclick="closeModal()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-2.5 rounded-xl font-semibold text-sm transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <style>
+    .active-tab { background: #4f46e5; color: white; }
+    .tab-btn:not(.active-tab):hover { background: #f1f5f9; }
+  </style>
 
+  <script>
+    //Auth guard
+    if (localStorage.getItem('git_tracker_auth') !== 'true') {
+      window.location.href = 'login.html';
+    }
 
+    //States
+    let allIssues    = [];
+    let activeTab    = 'all';
+    const BASE       = 'https://phi-lab-server.vercel.app/api/v1/lab';
 
+    //DOM refs
+    const loadingEl   = document.getElementById('loading');
+    const errorEl     = document.getElementById('error-state');
+    const emptyEl     = document.getElementById('empty-state');
+    const gridEl      = document.getElementById('cards-grid');
+    const totalEl     = document.getElementById('issue-total');
 
-<script src="./script.js"></script>
+    //Fetch all issues
+    async function loadIssues() {
+      showLoading();
+      try {
+        const res  = await fetch(`${BASE}/issues`);
+        const data = await res.json();
+        allIssues = Array.isArray(data) ? data : (data.issues || data.data || []);
+        renderIssues(filterIssues(allIssues));
+        updateTotal(allIssues);
+        updateTabCounts();
+      } catch(err) {
+        showError();
+      }
+    }
+
+    // Filter by tab
+    function filterIssues(list) {
+      if (activeTab === 'open')   return list.filter(i => (i.status || i.state || '').toLowerCase() === 'open');
+      if (activeTab === 'closed') return list.filter(i => (i.status || i.state || '').toLowerCase() === 'closed');
+      return list;
+    }
+
+    // Switch tab
+    function switchTab(tab) {
+      activeTab = tab;
+
+      // Reset all tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active-tab');
+        btn.classList.add('text-gray-500');
+        // Reset count badge style to default
+        const badge = btn.querySelector('span');
+        if (badge) {
+          badge.className = 'text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full';
+        }
+      });
+
+      // Activate clicked tab
+      const activeBtn = document.querySelector(`[data-tab="${tab}"]`);
+      activeBtn.classList.add('active-tab');
+      activeBtn.classList.remove('text-gray-500');
+      // Active badge
+      const activeBadge = activeBtn.querySelector('span');
+      if (activeBadge) {
+        activeBadge.className = 'text-xs font-bold bg-white/25 text-white px-2 py-0.5 rounded-full';
+      }
+
+      renderIssues(filterIssues(allIssues));
+    }
+
+    // Search 
+    async function doSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if (!q) { renderIssues(filterIssues(allIssues)); return; }
+      showLoading();
+      try {
+        const res  = await fetch(`${BASE}/issues/search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.issues || data.data || []);
+        renderIssues(results);
+      } catch(err) {
+        showError();
+      }
+    }
+
+    //Render cards
+    function renderIssues(list) {
+      hideAll();
+      if (!list || list.length === 0) { emptyEl.classList.remove('hidden'); return; }
+
+      gridEl.innerHTML = '';
+      list.forEach((issue, idx) => {
+        const card = buildCard(issue, idx);
+        gridEl.appendChild(card);
+      });
+      gridEl.classList.remove('hidden');
+    }
+
+    // Build one card
+    function buildCard(issue, idx) {
+      const status    = (issue.status || issue.state || 'open').toLowerCase();
+      const priority  = (issue.priority || 'LOW').toUpperCase();
+      const title     = issue.title || 'Untitled Issue';
+      const desc      = issue.description || issue.body || '';
+      const author    = issue.author || issue.user?.login || 'unknown';
+      const number    = issue.number || issue.id || idx + 1;
+      const date      = issue.created_at || issue.createdAt || '';
+      const labels    = issue.labels || [];
+
+      const borderClass = status === 'open' ? 'card-open' : 'card-closed';
+      const statusIcon  = status === 'open'
+        ? `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93 19.07 19.07"/></svg>`
+        : `<svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`;
+
+      const priorityClass = `priority-${priority}`;
+      const shortDesc = desc.length > 80 ? desc.slice(0, 80) + '…' : desc;
+      const formattedDate = date ? new Date(date).toLocaleDateString('en-US') : '';
+
+      const labelsHTML = labels.slice(0, 2).map(l => {
+        const name = (l.name || l).toLowerCase();
+        let cls = 'label-default';
+        if (name.includes('bug'))         cls = 'label-bug';
+        else if (name.includes('help'))   cls = 'label-help-wanted';
+        else if (name.includes('feat'))   cls = 'label-feature';
+        else if (name.includes('enhan'))  cls = 'label-enhancement';
+        else if (name.includes('doc'))    cls = 'label-documentation';
+        const icon = name.includes('bug') ? '🐛' : name.includes('help') ? '🤝' : '🏷';
+        return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${cls}">${icon} ${(l.name || l).toUpperCase()}</span>`;
+      }).join('');
+
+      const div = document.createElement('div');
+      div.className = `${borderClass} bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow fade-in`;
+      div.style.animationDelay = `${idx * 30}ms`;
+      div.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          ${statusIcon}
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full ${priorityClass}">${priority}</span>
+        </div>
+        <h3 class="font-bold text-gray-900 text-sm leading-snug mb-2">${title}</h3>
+        <p class="text-xs text-gray-500 leading-relaxed mb-3">${shortDesc}</p>
+        <div class="flex flex-wrap gap-1 mb-3">${labelsHTML}</div>
+        <div class="border-t border-gray-100 pt-3 text-xs text-gray-400 space-y-0.5">
+          <p>#${number} by <span class="font-medium text-gray-600">${author}</span></p>
+          <p>${formattedDate}</p>
+        </div>`;
+
+      div.addEventListener('click', () => openModal(issue));
+      return div;
+    }
+
+    // Modal
+    async function openModal(issue) {
+      // Try fetching full details
+      let full = issue;
+      try {
+        const id = issue.id || issue.number;
+        if (id) {
+          const res  = await fetch(`${BASE}/issue/${id}`);
+          const data = await res.json();
+          full = data.issue || data.data || data || issue;
+        }
+      } catch(_) {}
+
+      const status   = (full.status || full.state || 'open').toLowerCase();
+      const priority = (full.priority || 'LOW').toUpperCase();
+      const author   = full.author || full.user?.login || 'Unknown';
+      const date     = full.created_at || full.createdAt || '';
+      const labels   = full.labels || [];
+
+      document.getElementById('modal-title').textContent = full.title || 'Untitled';
+      document.getElementById('modal-desc').textContent  = full.description || full.body || 'No description provided.';
+      document.getElementById('modal-assignee').textContent = author;
+
+      // Status badge
+      const statusColor = status === 'open' ? 'bg-green-500' : 'bg-purple-500';
+      const statusLabel = status === 'open' ? 'Opened' : 'Closed';
+      const formattedDate = date ? new Date(date).toLocaleDateString('en-GB').replace(/\//g, '/') : '';
+
+      document.getElementById('modal-meta').innerHTML = `
+        <span class="${statusColor} text-white text-xs font-bold px-3 py-1 rounded-full">${statusLabel}</span>
+        <span class="text-gray-400">•</span>
+        <span>${statusLabel} by ${author}</span>
+        <span class="text-gray-400">•</span>
+        <span>${formattedDate}</span>`;
+
+      // Priority badge
+      const priorityClass = `priority-${priority}`;
+      const pEl = document.getElementById('modal-priority');
+      pEl.textContent  = priority;
+      pEl.className    = `inline-block text-xs font-bold px-3 py-1 rounded-full ${priorityClass}`;
+
+      // Labels
+      document.getElementById('modal-labels').innerHTML = labels.map(l => {
+        const name = (l.name || l).toLowerCase();
+        let cls = 'label-default';
+        if (name.includes('bug'))        cls = 'label-bug';
+        else if (name.includes('help'))  cls = 'label-help-wanted';
+        else if (name.includes('feat'))  cls = 'label-feature';
+        else if (name.includes('enhan')) cls = 'label-enhancement';
+        else if (name.includes('doc'))   cls = 'label-documentation';
+        const icon = name.includes('bug') ? '🐛' : name.includes('help') ? '🤝' : '🏷';
+        return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${cls}">${icon} ${(l.name || l).toUpperCase()}</span>`;
+      }).join('');
+
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    function closeModal(e) {
+      if (!e || e.target === document.getElementById('modal-overlay')) {
+        document.getElementById('modal-overlay').classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    
+  </script>
+
+  
 </body>
 </html>
