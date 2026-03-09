@@ -80,7 +80,7 @@
 
       if (username === 'admin' && password === 'admin123') {
         localStorage.setItem('git_tracker_auth', 'true');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } else {
         errorMsg.textContent = 'Invalid credentials. Use admin / admin123.';
         errorMsg.classList.remove('hidden');
